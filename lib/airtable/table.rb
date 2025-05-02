@@ -18,6 +18,29 @@ module Airtable
       results
     end
 
+    # Iterates through all records without storing them all in memory
+    # Yields each record to the provided block
+    # find_each(:sort => ["Name", :desc]) do |record|
+    #   puts record.fields["Name"]
+    # end
+    def find_each(options={})
+      return enum_for(:find_each, options) unless block_given?
+      
+      offset = nil
+      begin
+        batch_options = options.merge(:limit => LIMIT_MAX, :offset => offset)
+        response = records(batch_options)
+        
+        response.records.each do |record|
+          yield record
+        end
+        
+        offset = response.offset
+      end until offset.nil? || offset.empty? || response.records.empty?
+      
+      nil
+    end
+
     # Fetch records from the sheet given the list options
     # Options: limit = 100, offset = "as345g", sort = ["Name", "asc"]
     # records(:sort => ["Name", :desc], :limit => 50, :offset => "as345g")
